@@ -1,0 +1,285 @@
+#!/bin/bash
+#This script is used to compile OpenSSL and Openssh
+#Compile Time: 2020-02-28 
+#Edition: V1
+#缺少备份旧版环境openssl
+#缺少开启备用远程方式
+
+#Define old OpenSSL version
+old_version=`openssl version`
+
+#Judge system publisher
+os_check(){
+	if [ -e /etc/redhat-release ];then
+		redhat=`cat /etc/redhat-release | awk '{print $1}'`
+	else
+		debian=`cat /etc/issue | awk '{print $1}'`
+	fi
+	if [ "$redhat" == "CentOS" -o "$redhat" == "Red" ];then
+		pack_man=yum
+		echo "Your system publisher is "$redhat
+		echo "Define the package management tool as yum."
+	elif [ "$debian" == "Ubuntu" -o "$debian" == "ubuntu" ];then
+		pack_man=apt-get 
+		echo "Your system publisher is "$debian
+		echo "Define the package management tool as apt-get."
+	else
+		echo "Operating system does not suppot."
+		exit
+	fi
+}
+
+#Determine whether it is root permission
+root_Determine(){
+	if [ "$USER" != "root" ];then
+		echo "Please use root to execute."
+		exit
+	else
+		echo "The currently logged in user is:" $USER
+		echo "Start judging Publishers."
+	fi
+}
+
+#Get OpenSSL installation package
+get_package_openssl(){
+	echo "Get openssl.tar.gz"
+	curl -s https://ftp.openssl.org/source/ > /tmp/openssl.html
+	openssl_package=`cat /tmp/openssl.html |grep openssl  | sed -e 's/<[^<]*=\"//g' | sed -e 's/"\ \/>$//g'  | sed -e 's/<tr>top//' | sed -e 's/^.\{18\}//g' | cut -c1-21 | head -n1`
+	openssl=`echo $openssl_package | cut -c1-14`
+	rm -rf /tmp/openssl.html
+	if [ -e /opt/$openssl_package ];then
+		echo "You already have the installation package. "$openssl_package
+	else
+		wget -P /opt/  https://ftp.openssl.org/source/$openssl_package &> /dev/null
+		if [ -e /opt/$openssl_package ];then
+			echo -e "Download successful:"$openssl_package"\033[32m Success\033[0m"
+		else
+			echo -e "Download of "$openssl_package" installation package failed. Please check the download""\033[31m Failure\033[0m"
+			exit
+		fi
+	fi
+}
+
+#Unpack
+unpack_openssl(){
+	if [ -d /opt/$openssl ];then
+		mv /opt/$openssl  /opt/$openssl.bak
+	fi
+	tar -xzvf /opt/$openssl_package -C /opt/ &> /dev/null
+	if [ -d /opt/"$openssl" ];then
+		echo -e "Unpack "$openssl_package" successfulled.""\033[32m Success\033[0m"
+	else
+		echo -e "Failed to decompress "$openssl_package"\033[31m Failure\033[0m"
+		exit
+	fi
+}
+
+#Compilation and installation
+Comp_openssl(){
+	echo "Start compilation openssl."
+	cd /opt/$openssl
+	sh /opt/$openssl/config --prefix=/usr/local/openssl > /dev/null 2>&1 && make > /dev/null 2>&1  && make install > /dev/null 2>&1
+	if [ $? -eq 0 ];then
+		ln -sf /usr/local/openssl/include/openssl   /usr/include/openssl &> /dev/null
+		ln -sf  /usr/local/openssl/bin/openssl /usr/bin/openssl  &> /dev/null
+		echo "/usr/local/lib" >> /etc/ld.so.conf 
+		ln -s /usr/local/openssl/lib/libssl.so.1.1  /usr/lib64/libssl.so.1.1  &> /dev/null
+		ln -s /usr/local/openssl/lib/libcrypto.so.1.1  /usr/lib64/libcrypto.so.1.1   &> /dev/null
+		version=`openssl version`
+	else
+		echo -e "Compilation failed." "\033[31m Failed\033[0m"
+		exit
+	fi
+}
+
+#Judge current version
+jcv(){
+	if [ "$old_version" == "$version" ];then
+		echo -e "Compilation failed  ""\033[31m Failure\033[0m"
+		exit
+	else
+		echo -e "Compilation succeeded. The current OpenSSL version is "$version"\033[32m Success\033[0m"
+	fi
+}
+
+#Confirmation execution
+con(){
+	while true;do
+		stty -icanon min 0 time 100
+		echo -e -n  "Automatic execute ten seconds after,Are you sure you want to start the task""\033[36m Yes|No\033[0m""?"
+		read Arg
+		case $Arg in
+			Y|y|YES|yes)
+			break
+			;;
+			N|n|NO|no)
+			echo "Goodbye,Welcome to use next time!"
+			exit
+			;;
+			"")
+			echo ""
+			break
+			;;
+		esac
+	done
+}
+
+#Install dependency package
+In_depack(){
+	echo "Install dependency packages,Please wait."
+	$pack_man install gcc  wget make net-tools zlib*  pam-devel -y  > /dev/null 2>&1
+	if [ $? -eq 0 ];then
+		echo -e "Installation of dependent packages succeeded." "\033[32m Success\033[0m"
+	else
+		echo -e "Installation of dependent packagess failed,Automatic exit after 5 seconds." "\033[31m Failure\033[0m"
+		sleep 5
+		exit
+	fi
+}
+
+#Compile OpenSSL
+com_openssl(){
+	root_Determine
+	os_check
+	In_depack
+	get_package_openssl
+	con
+	unpack_openssl
+	Comp_openssl
+	jcv
+}
+
+#Get OpenSSH installation package
+#缺少检测版本是否存在
+get_package_openssh(){
+	old_ssh_version=`ssh -V`  #便于后期添加判断sshd升级情况
+	read -p "Please enter the version of openssh you want to install x.x ?  Example:8.2  You version:" openssh_Version
+	if [ -z $openssh_Version ];then
+		echo  -e "\033[31m Error\033[0m"
+		exit
+	else
+		jieguo=`echo "$openssh_Version*1" | bc `
+		if [ "$jieguo" == "0" ];then
+			echo -e "\033[31m Not a number\033[0m"
+			exit
+		fi
+	fi
+	if [ -e /opt/openssh-$openssh_Version"p1.tar.gz" ];then
+		echo "You already have the installation package. "openssh-$openssh_Version
+	else
+		echo "Get OpenSSH installation package"
+		wget -P /opt/ https://openbsd.hk/pub/OpenBSD/OpenSSH/portable/openssh-$openssh_Version"p1.tar.gz"   &> /dev/null
+		if [ -e /opt/openssh-$openssh_Version"p1.tar.gz" ];then
+			echo -e "Download successful:"openssh-$openssh_Version"p1.tar.gz""\033[32m Success\033[0m"
+		else
+			echo -e "Download of "openssh-$openssh_Version"p1"" installation package failed. Please check the download""\033[31m Failure\033[0m"
+			exit
+		fi
+	fi
+}
+
+#Create backup directory
+cre_openssh-dir(){
+	echo "Create openssh backup directory."
+	mkdir -p /tmp/backup_$DATE/openssh > /dev/null 2>&1
+	mkdir -p /tmp/backup_$DATE/openssh/usr/{bin,sbin} > /dev/null 2>&1
+	mkdir -p /tmp/backup_$DATE/openssh/etc/{init.d,pam.d,ssh} > /dev/null 2>&1
+	mkdir -p /tmp/backup_$DATE/openssh/usr/libexec/openssh > /dev/null 2>&1
+	mkdir -p /tmp/backup_$DATE/openssh/usr/share/man/{man1,man8} > /dev/null 2>&1
+}
+
+#Backup old_openssh
+backup_openssh(){
+	echo "Perform backup openssh."
+	rpm -qa | grep -w "openssh-server" > /dev/null 2>&1
+	if [ $? -eq 0 ];then
+		cp /usr/bin/ssh* /tmp/backup_$DATE/openssh/usr/bin > /dev/null 2>&1
+		cp /usr/sbin/sshd /tmp/backup_$DATE/openssh/usr/sbin > /dev/null 2>&1
+		cp /etc/init.d/sshd /tmp/backup_$DATE/openssh/etc/init.d > /dev/null 2>&1
+		cp /etc/pam.d/sshd /tmp/backup_$DATE/openssh/etc/pam.d > /dev/null 2>&1
+		cp /etc/ssh/ssh* /tmp/backup_$DATE/openssh/etc/ssh > /dev/null 2>&1
+		cp /etc/ssh/sshd_config /tmp/backup_$DATE/openssh/etc/ssh > /dev/null 2>&1
+		cp /usr/share/man/man1/ssh* /tmp/backup_$DATE/openssh/usr/share/man/man1 > /dev/null 2>&1
+		cp /usr/share/man/man8/ssh* /tmp/backup_$DATE/openssh/usr/share/man/man8 > /dev/null 2>&1
+		cp /usr/libexec/openssh/ssh* /tmp/backup_$DATE/openssh/usr/libexec/openssh > /dev/null 2>&1
+		rpm -e --nodeps openssh-clients openssh-server openssh > /dev/null 2>&1
+	else
+		mv /usr/bin/ssh* /tmp/backup_$DATE/openssh/usr/bin > /dev/null 2>&1
+		mv /usr/sbin/sshd /tmp/backup_$DATE/openssh/usr/sbin > /dev/null 2>&1
+		mv /etc/init.d/sshd /tmp/backup_$DATE/openssh/etc/init.d > /dev/null 2>&1
+		mv /etc/pam.d/sshd /tmp/backup_$DATE/openssh/etc/pam.d > /dev/null 2>&1
+		mv /etc/ssh/ssh* /tmp/backup_$DATE/openssh/etc/ssh > /dev/null 2>&1
+		mv /etc/ssh/sshd_config /tmp/backup_$DATE/openssh/etc/ssh > /dev/null 2>&1
+		mv /usr/share/man/man1/ssh* /tmp/backup_$DATE/openssh/usr/share/man/man1 > /dev/null 2>&1
+		mv /usr/share/man/man8/ssh* /tmp/backup_$DATE/openssh/usr/share/man/man8 > /dev/null 2>&1
+		mv /usr/libexec/ssh* /tmp/backup_$DATE/openssh/usr/libexec > /dev/null 2>&1
+	fi
+}
+
+#Unpack
+unpack_openssh(){
+	if [ -d /opt/openssh-$openssh_Version"p1" ];then
+		mv /opt/openssh-$openssh_Version"p1"  /opt/openssh-$openssh_Version"p1".bak
+	fi
+	tar -xzvf /opt/openssh-$openssh_Version"p1.tar.gz" -C /opt/ &> /dev/null
+	if [ -d /opt/openssh-$openssh_Version"p1" ];then
+		echo -e "Unpack "openssh-$openssh_Version"p1.tar.gz""successfulled.""\033[32m Success\033[0m"
+	else
+		echo -e "Failed to decompress "openssh-$openssh_Version"p1.tar.gz""\033[31m Failure\033[0m"
+		exit
+	fi
+}
+
+#Compilation and installation
+Comp_openssh(){
+	echo "Start compilation openssh."
+	cd /opt/openssh-$openssh_Version"p1"
+	sh /opt/openssh-$openssh_Version"p1"/configure --prefix=/usr --sysconfdir=/etc/ssh --with-ssl-dir=/usr/local/openssl --with-md5-passwords > /dev/null 2>&1
+	if  [ $? -eq 0 ];then
+		make > /dev/null 2>&1 && make install > /dev/null 2>&1
+	else
+		echo -e "Failed to compile openssh. " "\033[31m Failed\033[0m"
+		exit
+	fi
+	if [ -e /usr/sbin/sshd ];then
+		echo -e "Compliation openssh Success ""\033[32m Success\033[0m"
+	fi
+	#PermitRootLogin
+	echo "PermitRootLogin yes" >> /etc/ssh/sshd_config
+	echo "UsePAM yes"   >> /etc/ssh/sshd_config
+	if [ $? -eq 0 ];then
+		echo -e "PermitRootLogin yes" "\033[32m Success\033[0m"
+	else
+		echo -e "PermitRootLogin Failed,Please check " "\033[31m Failed\033[0m"
+		exit
+	fi
+}
+
+#Start openssh
+start_openssh(){
+	cp -rf /opt/openssh-$openssh_Version"p1"/contrib/redhat/sshd.init /etc/init.d/sshd
+	cp -rf /opt/openssh-$openssh_Version"p1"/contrib/redhat/sshd.pam  /etc/pam.d/sshd
+	chmod +x /etc/init.d/sshd
+	chmod 600 /etc/ssh/ssh_host_rsa_key
+	chmod 600 /etc/ssh/ssh_host_dsa_key
+	chmod 600 /etc/ssh/ssh_host_ecdsa_key
+	chmod 600 /etc/ssh/ssh_host_ed25519_key
+	chkconfig --add sshd
+	chkconfig sshd on
+	service sshd start > /dev/null 2>&1
+	if [ $? -eq 0 ];then
+		echo -e "Start sshd succeeded. " "\033[32m Success\033[0m"
+		ssh -V
+	else
+		echo -e "Start sshd failed. ""\033[31m Failure\033[0m"
+	fi
+}
+
+
+com_openssl
+get_package_openssh
+cre_openssh-dir
+backup_openssh
+unpack_openssh
+Comp_openssh
+start_openssh
