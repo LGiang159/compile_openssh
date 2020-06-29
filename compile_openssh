@@ -1,6 +1,8 @@
 #!/bin/bash
 #This script is used to compile OpenSSL and Openssh
 #Compile Time: 2020-02-28 
+#Author: Gang Li
+#Email: LG_iang@163.com
 #Edition: V1
 #缺少备份旧版环境openssl
 #缺少开启备用远程方式
