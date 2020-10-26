@@ -9,6 +9,7 @@
 
 #Define old OpenSSL version
 old_version=`openssl version`
+old_ssh_version=`ssh -V`  #便于后期添加判断sshd升级情况
 
 #Judge system publisher
 os_check(){
@@ -162,7 +163,6 @@ PVL(){
 #Get OpenSSH installation package
 #缺少检测版本是否存在
 get_package_openssh(){
-	old_ssh_version=`ssh -V`  #便于后期添加判断sshd升级情况
 	read -p "Please enter the version of openssh you want to install x.x ?  Example:8.2  You version:" openssh_Version
 	if [ -z $openssh_Version ];then
 		echo  -e "\033[31m Error\033[0m"
@@ -284,7 +284,6 @@ start_openssh(){
 		echo -e "Start sshd failed. ""\033[31m Failure\033[0m"
 	fi
 }
-
 
 
 com_openssl
