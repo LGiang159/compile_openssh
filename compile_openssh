@@ -119,8 +119,8 @@ con(){
 			exit
 			;;
 			"")
-			echo ""
-			break
+			echo "Timeout exit"
+			exit
 			;;
 		esac
 	done
