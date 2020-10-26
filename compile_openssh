@@ -108,6 +108,7 @@ jcv(){
 #Confirmation execution
 con(){
 	while true;do
+		stty erase '^H'
 		stty -icanon min 0 time 100
 		echo -e -n  "Automatic execute ten seconds after,Are you sure you want to start the task""\033[36m Yes|No\033[0m""?"
 		read Arg
@@ -120,7 +121,7 @@ con(){
 			exit
 			;;
 			"")
-			echo "Timeout exit"
+			echo -e "Timeout exit" "\033[31m Failure\033[0m"
 			exit
 			;;
 		esac
@@ -163,6 +164,7 @@ PVL(){
 #Get OpenSSH installation package
 #缺少检测版本是否存在
 get_package_openssh(){
+	stty erase '^H'
 	read -p "Please enter the version of openssh you want to install x.x ?  Example:8.2  You version:" openssh_Version
 	if [ -z $openssh_Version ];then
 		echo  -e "\033[31m Error\033[0m"
