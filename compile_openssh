@@ -235,7 +235,7 @@ unpack_openssh(){
 	fi
 	tar -xzvf /opt/openssh-$openssh_Version"p1.tar.gz" -C /opt/ &> /dev/null
 	if [ -d /opt/openssh-$openssh_Version"p1" ];then
-		echo -e "Unpack "openssh-$openssh_Version"p1.tar.gz""successfulled.""\033[32m Success\033[0m"
+		echo -e "Unpack "openssh-$openssh_Version"p1.tar.gz" "successfulled.""\033[32m Success\033[0m"
 	else
 		echo -e "Failed to decompress "openssh-$openssh_Version"p1.tar.gz""\033[31m Failure\033[0m"
 		exit
