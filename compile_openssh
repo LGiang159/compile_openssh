@@ -266,7 +266,7 @@ start_openssh(){
 	chmod 600 /etc/ssh/ssh_host_ed25519_key
 	chkconfig --add sshd
 	chkconfig sshd on
-	service sshd start > /dev/null 2>&1
+	service sshd restart > /dev/null 2>&1
 	if [ $? -eq 0 ];then
 		echo -e "Start sshd succeeded. " "\033[32m Success\033[0m"
 		ssh -V
