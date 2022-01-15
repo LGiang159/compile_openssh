@@ -53,7 +53,7 @@ get_package_openssl(){
 	if [ -e /opt/$openssl_package ];then
 		echo "You already have the installation package. "$openssl_package
 	else
-		wget -P /opt/  https://ftp.openssl.org/source/$openssl_package &> /dev/null
+		wget -P /opt/  https://ftp.openssl.org/source/$openssl_package  --no-check-certificate &> /dev/null
 		if [ -e /opt/$openssl_package ];then
 			echo -e "Download successful:"$openssl_package"\033[32m Success\033[0m"
 		else
@@ -143,7 +143,7 @@ In_depack(){
 
 #
 PVL(){
-	curl -k -s  https://openbsd.hk/pub/OpenBSD/OpenSSH/portable/  | grep .tar.gz  | awk -F ">" {'print $2'} | awk -F "<" {'print $1'} | egrep -v '.asc' | egrep -v '.md5' | egrep -v '.sig' | sort -u
+	curl -k -s  https://ftp.openbsd.org/pub/OpenBSD/OpenSSH/portable/   | grep .tar.gz  | awk -F ">" {'print $2'} | awk -F "<" {'print $1'} | egrep -v '.asc' | egrep -v '.md5' | egrep -v '.sig' | sort -u
 	echo "The above is an upgrade list."
 	echo ""
 	echo ""
@@ -168,7 +168,7 @@ get_package_openssh(){
 		echo "You already have the installation package. "openssh-$openssh_Version
 	else
 		echo "Get OpenSSH installation package"
-		wget -P /opt/ https://openbsd.hk/pub/OpenBSD/OpenSSH/portable/openssh-$openssh_Version"p1.tar.gz"   &> /dev/null
+		wget -P /opt/ https://openbsd.hk/pub/OpenBSD/OpenSSH/portable/openssh-$openssh_Version"p1.tar.gz" --no-check-certificate  &> /dev/null
 		if [ -e /opt/openssh-$openssh_Version"p1.tar.gz" ];then
 			echo -e "Download successful:"openssh-$openssh_Version"p1.tar.gz""\033[32m Success\033[0m"
 		else
