@@ -143,7 +143,7 @@ In_depack(){
 
 #
 PVL(){
-	curl -k -s  https://ftp.openbsd.org/pub/OpenBSD/OpenSSH/portable/   | grep .tar.gz  | awk -F ">" {'print $2'} | awk -F "<" {'print $1'} | egrep -v '.asc' | egrep -v '.md5' | egrep -v '.sig' | sort -u
+	curl -k -s  https://ftp.openbsd.org/pub/OpenBSD/OpenSSH/portable/   | grep .tar.gz  | awk -F ">" {'print $2'} | awk -F "<" {'print $1'} | egrep -v '.asc' | egrep -v '.md5' | egrep -v '.sig' | sort -u | tail -5
 	echo "The above is an upgrade list."
 	echo ""
 	echo ""
